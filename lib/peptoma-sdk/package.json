@@ -1,0 +1,49 @@
+{
+  "name": "peptoma-sdk",
+  "version": "0.1.3",
+  "description": "Official TypeScript SDK for the PEPTOMA open DeSci peptide research platform",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "peptide",
+    "desci",
+    "bioactivity",
+    "solana",
+    "peptoma",
+    "bioinformatics",
+    "drug-discovery",
+    "ai",
+    "sdk"
+  ],
+  "author": "PEPTOMA Team <team@peptoma.xyz>",
+  "license": "MIT",
+  "homepage": "https://peptoma.xyz/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peptoma/peptoma-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/peptoma/peptoma-sdk/issues"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}

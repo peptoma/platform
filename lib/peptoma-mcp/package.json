@@ -1,0 +1,51 @@
+{
+  "name": "peptoma-mcp",
+  "version": "0.1.6",
+  "description": "Official PEPTOMA MCP server — connect any AI agent to the PEPTOMA open DeSci peptide research platform",
+  "keywords": [
+    "peptoma",
+    "mcp",
+    "model-context-protocol",
+    "peptide",
+    "desci",
+    "bioactivity",
+    "solana",
+    "ai-agent",
+    "drug-discovery",
+    "bioinformatics"
+  ],
+  "homepage": "https://peptoma.xyz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peptoma/peptoma-mcp.git"
+  },
+  "license": "MIT",
+  "author": "PEPTOMA Team <peptomatech@gmail.com>",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "peptoma-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "peptoma-sdk": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsup": "^8.5.1",
+    "tsx": "catalog:",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

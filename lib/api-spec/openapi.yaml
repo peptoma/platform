@@ -1,0 +1,1025 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: PEPTOMA - Open DeSci platform for peptide research
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: sequences
+    description: Peptide sequence analysis
+  - name: feed
+    description: Public feed of analyses
+  - name: annotations
+    description: Community annotations and votes
+  - name: missions
+    description: User mission control / dashboard
+  - name: token
+    description: Token balance and staking
+  - name: events
+    description: Community events and challenges
+  - name: citations
+    description: Sequence citation and fork graph
+  - name: teams
+    description: Teams and collaboration (Lab tier)
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /sequences:
+    post:
+      operationId: submitSequence
+      tags: [sequences]
+      summary: Submit a peptide sequence for AI analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitSequenceBody"
+      responses:
+        "201":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SequenceAnalysis"
+
+  /sequences/{id}:
+    get:
+      operationId: getSequence
+      tags: [sequences]
+      summary: Get a sequence analysis by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sequence analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SequenceAnalysis"
+
+  /sequences/{id}/forks:
+    get:
+      operationId: getSequenceForks
+      tags: [citations]
+      summary: Get sequences forked from this one
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of forked sequences
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SequenceAnalysis"
+    post:
+      operationId: forkSequence
+      tags: [citations]
+      summary: Fork a sequence (creates a new linked analysis)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+              required: [userId]
+      responses:
+        "201":
+          description: Forked sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SequenceAnalysis"
+
+  /sequences/{id}/citations:
+    get:
+      operationId: getSequenceCitations
+      tags: [citations]
+      summary: Get sequences that cite this one
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of citing sequences
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SequenceAnalysis"
+
+  /teams:
+    post:
+      operationId: createTeam
+      tags: [teams]
+      summary: Create a team (Lab tier required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeamBody"
+      responses:
+        "201":
+          description: Created team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+    get:
+      operationId: getMyTeams
+      tags: [teams]
+      summary: List teams for a wallet
+      parameters:
+        - name: wallet
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of teams with role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamSummary"
+
+  /teams/{id}:
+    get:
+      operationId: getTeam
+      tags: [teams]
+      summary: Get a team with its members
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Team with members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamDetail"
+
+  /teams/{id}/invite:
+    post:
+      operationId: inviteTeamMember
+      tags: [teams]
+      summary: Invite a wallet to join the team
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberBody"
+      responses:
+        "201":
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+
+  /teams/{id}/accept:
+    post:
+      operationId: acceptTeamInvite
+      tags: [teams]
+      summary: Accept a team invitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                wallet:
+                  type: string
+              required: [wallet]
+      responses:
+        "200":
+          description: Membership updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+
+  /teams/{id}/members/{wallet}:
+    delete:
+      operationId: removeTeamMember
+      tags: [teams]
+      summary: Remove a member from a team (owner or self-leave)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: wallet
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ownerWallet:
+                  type: string
+              required: [ownerWallet]
+      responses:
+        "200":
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /feed:
+    get:
+      operationId: getFeed
+      tags: [feed]
+      summary: Get public feed of peptide analyses
+      parameters:
+        - name: disease
+          in: query
+          schema:
+            type: string
+        - name: minScore
+          in: query
+          schema:
+            type: number
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, score, annotations, trending]
+            default: newest
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Feed results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedResponse"
+
+  /feed/stats:
+    get:
+      operationId: getFeedStats
+      tags: [feed]
+      summary: Get feed statistics (total analyses, avg score, disease breakdown)
+      responses:
+        "200":
+          description: Feed statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedStats"
+
+  /feed/trending:
+    get:
+      operationId: getTrendingSequences
+      tags: [feed]
+      summary: Get trending sequences by vote count
+      responses:
+        "200":
+          description: Trending sequences
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SequenceAnalysis"
+
+  /annotations:
+    post:
+      operationId: createAnnotation
+      tags: [annotations]
+      summary: Add annotation to a sequence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAnnotationBody"
+      responses:
+        "201":
+          description: Created annotation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Annotation"
+
+  /annotations/{sequenceId}:
+    get:
+      operationId: getAnnotations
+      tags: [annotations]
+      summary: Get annotations for a sequence
+      parameters:
+        - name: sequenceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of annotations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Annotation"
+
+  /annotations/{annotationId}/vote:
+    post:
+      operationId: voteAnnotation
+      tags: [annotations]
+      summary: Vote on an annotation (up or down)
+      parameters:
+        - name: annotationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoteAnnotationBody"
+      responses:
+        "200":
+          description: Updated annotation score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score:
+                    type: integer
+                required:
+                  - score
+
+  /missions:
+    get:
+      operationId: getMissions
+      tags: [missions]
+      summary: Get current user's mission control dashboard
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mission control data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MissionControl"
+
+  /missions/history:
+    get:
+      operationId: getMissionHistory
+      tags: [missions]
+      summary: Get user analysis run history
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Analysis history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SequenceAnalysis"
+
+  /missions/earnings:
+    get:
+      operationId: getMissionEarnings
+      tags: [missions]
+      summary: Get user earnings breakdown
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Earnings breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsBreakdown"
+
+  /token/balance:
+    get:
+      operationId: getTokenBalance
+      tags: [token]
+      summary: Get user's $PEPTOMA token balance and staking info
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Token balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenBalance"
+
+  /token/leaderboard:
+    get:
+      operationId: getTokenLeaderboard
+      tags: [token]
+      summary: Get top contributors by earned tokens
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    SubmitSequenceBody:
+      type: object
+      properties:
+        sequence:
+          type: string
+          description: Amino acid sequence (single-letter codes, max 512 residues)
+        userId:
+          type: string
+        diseaseTarget:
+          type: string
+        notes:
+          type: string
+        depth:
+          type: string
+          enum: [standard, deep]
+          default: standard
+        paymentTxSig:
+          type: string
+          description: Solana txSig of the 1,000 $PEPTM payment to treasury — required for deep analysis
+        forkedFromId:
+          type: integer
+          description: ID of the sequence this submission is forked from
+        citedSequenceIds:
+          type: array
+          items:
+            type: integer
+          description: IDs of sequences cited by this submission
+      required:
+        - sequence
+        - userId
+
+    SequenceAnalysis:
+      type: object
+      properties:
+        id:
+          type: integer
+        sequence:
+          type: string
+        userId:
+          type: string
+        diseaseTarget:
+          type: string
+        notes:
+          type: string
+        depth:
+          type: string
+          enum: [standard, deep]
+        structurePrediction:
+          type: string
+          enum: [alpha_helix, beta_sheet, random_coil, mixed]
+        bioactivityScore:
+          type: number
+          description: 0-100 bioactivity prediction score
+        bioactivityLabel:
+          type: string
+          description: Classification label (antimicrobial, anti-inflammatory, hormonal, etc.)
+        confidenceScore:
+          type: number
+          description: 0-100 AI confidence score
+        molecularWeight:
+          type: number
+        hydrophobicityIndex:
+          type: number
+        chargeAtPH7:
+          type: number
+        halfLife:
+          type: string
+        toxicityRisk:
+          type: string
+          enum: [low, medium, high]
+        tags:
+          type: array
+          items:
+            type: string
+        annotationSuggestions:
+          type: array
+          items:
+            type: string
+          description: AI-generated annotation suggestions for community review
+        voteCount:
+          type: integer
+        annotationCount:
+          type: integer
+        status:
+          type: string
+          enum: [processing, completed, failed]
+        forkedFromId:
+          type: integer
+          description: ID of the original sequence this was forked from
+        citedSequenceIds:
+          type: array
+          items:
+            type: integer
+          description: IDs of sequences cited by this submission
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sequence
+        - userId
+        - bioactivityScore
+        - confidenceScore
+        - status
+        - createdAt
+
+    FeedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SequenceAnalysis"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - items
+        - total
+        - page
+        - totalPages
+
+    FeedStats:
+      type: object
+      properties:
+        totalAnalyses:
+          type: integer
+        avgBioactivityScore:
+          type: number
+        avgConfidenceScore:
+          type: number
+        totalAnnotations:
+          type: integer
+        totalVotes:
+          type: integer
+        diseaseBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              disease:
+                type: string
+              count:
+                type: integer
+            required:
+              - disease
+              - count
+        recentActivity:
+          type: integer
+          description: Analyses in last 24h
+      required:
+        - totalAnalyses
+        - avgBioactivityScore
+        - avgConfidenceScore
+        - totalAnnotations
+        - totalVotes
+        - diseaseBreakdown
+        - recentActivity
+
+    CreateAnnotationBody:
+      type: object
+      properties:
+        sequenceId:
+          type: integer
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [confirm, challenge, extend, tag]
+        content:
+          type: string
+        tag:
+          type: string
+          description: Disease/target label for tag annotations
+        tokensEarned:
+          type: number
+      required:
+        - sequenceId
+        - userId
+        - type
+
+    VoteAnnotationBody:
+      type: object
+      properties:
+        direction:
+          type: string
+          enum: [up, down]
+        userId:
+          type: string
+      required:
+        - direction
+        - userId
+
+    Annotation:
+      type: object
+      properties:
+        id:
+          type: integer
+        sequenceId:
+          type: integer
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [confirm, challenge, extend, tag]
+        content:
+          type: string
+        tag:
+          type: string
+        score:
+          type: integer
+          description: Net upvotes on this annotation
+        tokensEarned:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sequenceId
+        - userId
+        - type
+        - score
+        - createdAt
+
+    MissionControl:
+      type: object
+      properties:
+        userId:
+          type: string
+        totalRuns:
+          type: integer
+        completedRuns:
+          type: integer
+        processingRuns:
+          type: integer
+        totalTokensEarned:
+          type: number
+          description: Research points earned from annotations and lab runs (pre-launch, not real $PEPTM)
+        totalAnnotations:
+          type: integer
+        stakingStatus:
+          type: string
+          enum: [free, researcher, pro, lab]
+          description: Derived in real-time from active staking positions
+        stakedAmount:
+          type: number
+          description: Total $PEPTM actively staked across all positions
+        pendingStakingRewards:
+          type: number
+          description: Accrued $PEPTM rewards not yet claimed across all active positions
+        activePositions:
+          type: integer
+          description: Number of active staking positions
+        avgBioactivityScore:
+          type: number
+        recentRuns:
+          type: array
+          items:
+            $ref: "#/components/schemas/SequenceAnalysis"
+      required:
+        - userId
+        - totalRuns
+        - completedRuns
+        - processingRuns
+        - totalTokensEarned
+        - totalAnnotations
+        - stakingStatus
+        - stakedAmount
+        - pendingStakingRewards
+        - activePositions
+        - avgBioactivityScore
+        - recentRuns
+
+    EarningsBreakdown:
+      type: object
+      properties:
+        userId:
+          type: string
+        totalEarned:
+          type: number
+        thisWeek:
+          type: number
+        fromAnnotations:
+          type: number
+        fromStaking:
+          type: number
+        fromReferrals:
+          type: number
+        recentEarnings:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              amount:
+                type: number
+              label:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+            required:
+              - source
+              - amount
+              - label
+              - createdAt
+      required:
+        - userId
+        - totalEarned
+        - thisWeek
+        - fromAnnotations
+        - fromStaking
+        - fromReferrals
+        - recentEarnings
+
+    TokenBalance:
+      type: object
+      properties:
+        userId:
+          type: string
+        balance:
+          type: number
+        stakedAmount:
+          type: number
+        earnedTotal:
+          type: number
+        spentTotal:
+          type: number
+        stakingTier:
+          type: string
+          enum: [free, researcher, pro, lab]
+        nextRewardAt:
+          type: string
+          format: date-time
+        solanaAddress:
+          type: string
+      required:
+        - userId
+        - balance
+        - stakedAmount
+        - earnedTotal
+        - spentTotal
+        - stakingTier
+
+    EventPrize:
+      type: object
+      properties:
+        rank:   { type: integer }
+        label:  { type: string }
+        amount: { type: number }
+        color:  { type: string }
+      required: [rank, label, amount, color]
+
+    EventScoring:
+      type: object
+      properties:
+        perRun:          { type: number }
+        perAnnotation:   { type: number }
+        perTokenEarned:  { type: number }
+      required: [perRun, perAnnotation, perTokenEarned]
+
+    EventInfo:
+      type: object
+      properties:
+        id:          { type: string }
+        name:        { type: string }
+        season:      { type: string }
+        description: { type: string }
+        startAt:     { type: string, format: date-time }
+        endAt:       { type: string, format: date-time }
+        status:
+          type: string
+          enum: [upcoming, active, ended]
+        prizePool: { type: number }
+        prizes:
+          type: array
+          items: { $ref: '#/components/schemas/EventPrize' }
+        scoring:
+          $ref: '#/components/schemas/EventScoring'
+      required: [id, name, season, description, startAt, endAt, status, prizePool, prizes, scoring]
+
+    EventLeaderboardEntry:
+      type: object
+      properties:
+        rank:               { type: integer }
+        userId:             { type: string }
+        username:           { type: string }
+        totalRuns:          { type: integer }
+        totalAnnotations:   { type: integer }
+        totalTokensEarned:  { type: number }
+        combinedScore:      { type: number }
+      required: [rank, userId, username, totalRuns, totalAnnotations, totalTokensEarned, combinedScore]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        totalTokensEarned:
+          type: number
+        totalContributions:
+          type: integer
+        rank:
+          type: integer
+      required:
+        - userId
+        - username
+        - totalTokensEarned
+        - totalContributions
+        - rank
+
+    Team:
+      type: object
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        description: { type: string }
+        ownerWallet: { type: string }
+        createdAt:   { type: string, format: date-time }
+      required: [id, name, ownerWallet, createdAt]
+
+    TeamMember:
+      type: object
+      properties:
+        id:            { type: integer }
+        teamId:        { type: integer }
+        walletAddress: { type: string }
+        role:
+          type: string
+          enum: [owner, member, invited]
+        invitedAt: { type: string, format: date-time }
+        joinedAt:  { type: string, format: date-time }
+      required: [id, teamId, walletAddress, role, invitedAt]
+
+    TeamDetail:
+      type: object
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        description: { type: string }
+        ownerWallet: { type: string }
+        createdAt:   { type: string, format: date-time }
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+      required: [id, name, ownerWallet, createdAt, members]
+
+    TeamSummary:
+      type: object
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        description: { type: string }
+        ownerWallet: { type: string }
+        createdAt:   { type: string, format: date-time }
+        memberCount: { type: integer }
+        myRole:
+          type: string
+          enum: [owner, member, invited]
+      required: [id, name, ownerWallet, createdAt, memberCount, myRole]
+
+    CreateTeamBody:
+      type: object
+      properties:
+        name:        { type: string }
+        description: { type: string }
+        ownerWallet: { type: string }
+      required: [name, ownerWallet]
+
+    InviteMemberBody:
+      type: object
+      properties:
+        ownerWallet:  { type: string }
+        targetWallet: { type: string }
+      required: [ownerWallet, targetWallet]
